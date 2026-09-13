@@ -1,0 +1,19 @@
+{
+  "name": "لغز اليوم - تحدي الذكاء بالذكاء الاصطناعي",
+  "short_name": "لغز اليوم",
+  "description": "لعبة يومية تفاعلية لتحدي الذكاء وحل الألغاز البصرية بالذكاء الاصطناعي",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#4f46e5",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

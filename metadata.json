@@ -1,0 +1,6 @@
+{
+  "name": "BrainRush AI - تحدي الذكاء والألغاز اليومية",
+  "description": "لعبة BrainRush AI اليومية التفاعلية لتحدي الذكاء وحل الألغاز البصرية والتفكير الاستنتاجي مع تلميحات ذكية ومشاركة اجتماعية سريعة.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
