@@ -12,7 +12,7 @@ app.use(express.json());
 // Monetag verification and service worker endpoint
 const swContent = `self.options = {
     "domain": "3nbf4.com",
-    "zoneId": 11787573
+    "zoneId": 11787291
 }
 self.lary = ""
 importScripts('https://3nbf4.com/act/files/service-worker.min.js?r=sw')`;
@@ -141,7 +141,7 @@ app.get("/api/health", (req, res) => {
     status: "ok",
     hasGemini: !!process.env.GEMINI_API_KEY,
     monetag: {
-      zoneId: "11787573",
+      zoneId: "11787291",
       domain: "3nbf4.com",
       swVerified: true
     }
