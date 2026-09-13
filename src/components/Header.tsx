@@ -26,17 +26,25 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center justify-between gap-2">
         {/* Logo and branding */}
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 flex items-center justify-center shadow-md shadow-indigo-500/25 text-white font-black text-base select-none">
-            🧠
+          <div className="relative group cursor-pointer" onClick={onResetToDaily}>
+            <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 rounded-xl blur-xs opacity-75 group-hover:opacity-100 transition duration-300 animate-glow"></div>
+            <img
+              src="/app-icon.jpg"
+              alt="BrainRush AI"
+              referrerPolicy="no-referrer"
+              className="relative w-10 h-10 rounded-xl object-cover shadow-lg border border-indigo-400/40 transform group-hover:scale-105 transition duration-200"
+            />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <h1 className="text-base sm:text-lg font-black tracking-tight text-white font-sans">
-                BrainRush <span className="text-indigo-400">AI</span>
+              <h1 className="text-base sm:text-lg font-black tracking-tight text-white font-sans flex items-center gap-1">
+                <span className="bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text text-transparent">BrainRush</span>
+                <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent font-extrabold">AI</span>
               </h1>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium hidden sm:block">
-              تحدي العقل والألغاز اليومية
+            <p className="text-[11px] text-slate-400 font-medium hidden sm:flex items-center gap-1">
+              <span>تحدي العقل والألغاز الذكية</span>
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
             </p>
           </div>
         </div>

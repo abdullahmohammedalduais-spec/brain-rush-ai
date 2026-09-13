@@ -1,4 +1,4 @@
-export type PuzzleCategory = 'visual' | 'logic' | 'mystery' | 'riddle';
+export type PuzzleCategory = 'visual' | 'logic' | 'mystery' | 'riddle' | 'math' | 'wisdom' | 'science';
 export type PuzzleDifficulty = 'easy' | 'medium' | 'hard';
 
 export interface Puzzle {

@@ -7,13 +7,15 @@ import { HintModal } from './components/HintModal';
 import { ShareModal } from './components/ShareModal';
 import { StatsModal } from './components/StatsModal';
 import { ArchiveModal } from './components/ArchiveModal';
+import { AiCategoryBar } from './components/AiCategoryBar';
 import { getDailyPuzzleForDate, CURATED_PUZZLES } from './data/dailyPuzzles';
-import { Puzzle, PlayerStats } from './types';
+import { Puzzle, PlayerStats, PuzzleCategory } from './types';
+import { fetchNewAiPuzzle } from './utils/aiPuzzleEngine';
 import { isAnswerCorrect } from './utils/arabic';
 import { playSound } from './utils/audio';
 import { Sparkles, Brain, Trophy, Share2 } from 'lucide-react';
 
-const MAX_ATTEMPTS = 5;
+const BASE_MAX_ATTEMPTS = 5;
 const STATS_STORAGE_KEY = 'ai_puzzle_stats_v2';
 const PROGRESS_STORAGE_KEY = 'ai_puzzle_progress_v2';
 
@@ -38,8 +40,13 @@ export default function App() {
   // Today's official daily puzzle
   const todayPuzzle = useMemo(() => getDailyPuzzleForDate(new Date()), []);
 
-  const [currentPuzzle, setCurrentPuzzle] = useState<Puzzle>(todayPuzzle);
+  // Multi-question navigation queue
+  const [puzzlesQueue, setPuzzlesQueue] = useState<Puzzle[]>([todayPuzzle]);
+  const [currentQueueIndex, setCurrentQueueIndex] = useState<number>(0);
+
+  const currentPuzzle = puzzlesQueue[currentQueueIndex] || todayPuzzle;
   const [isDaily, setIsDaily] = useState<boolean>(true);
+  const [selectedCategory, setSelectedCategory] = useState<PuzzleCategory | 'all'>('all');
 
   // Gameplay state
   const [attempts, setAttempts] = useState<string[]>([]);
@@ -47,6 +54,9 @@ export default function App() {
   const [isSolved, setIsSolved] = useState<boolean>(false);
   const [isFailed, setIsFailed] = useState<boolean>(false);
   const [isRevealed, setIsRevealed] = useState<boolean>(false);
+  const [extraAttempts, setExtraAttempts] = useState<number>(0);
+
+  const effectiveMaxAttempts = BASE_MAX_ATTEMPTS + extraAttempts;
 
   // Player Stats
   const [stats, setStats] = useState<PlayerStats>(() => {
@@ -59,7 +69,16 @@ export default function App() {
   });
 
   // Modals
-  const [hintModalOpen, setHintModalOpen] = useState(false);
+  const [rewardModalState, setRewardModalState] = useState<{
+    isOpen: boolean;
+    type: 'hint' | 'reveal' | 'extraAttempts';
+    title?: string;
+    desc?: string;
+  }>({
+    isOpen: false,
+    type: 'hint'
+  });
+
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [statsModalOpen, setStatsModalOpen] = useState(false);
   const [archiveModalOpen, setArchiveModalOpen] = useState(false);
@@ -84,6 +103,7 @@ export default function App() {
 
   // Load / Restore progress for current puzzle
   useEffect(() => {
+    if (!currentPuzzle?.id) return;
     try {
       const allProgress = JSON.parse(localStorage.getItem(PROGRESS_STORAGE_KEY) || '{}');
       const puzzleProg = allProgress[currentPuzzle.id];
@@ -93,12 +113,14 @@ export default function App() {
         setIsSolved(puzzleProg.isSolved || false);
         setIsFailed(puzzleProg.isFailed || false);
         setIsRevealed(puzzleProg.isRevealed || false);
+        setExtraAttempts(puzzleProg.extraAttempts || 0);
       } else {
         setAttempts([]);
         setUnlockedHints([]);
         setIsSolved(false);
         setIsFailed(false);
         setIsRevealed(false);
+        setExtraAttempts(0);
       }
     } catch (e) {
       setAttempts([]);
@@ -106,8 +128,9 @@ export default function App() {
       setIsSolved(false);
       setIsFailed(false);
       setIsRevealed(false);
+      setExtraAttempts(0);
     }
-  }, [currentPuzzle.id]);
+  }, [currentPuzzle?.id]);
 
   // Save progress for current puzzle
   const savePuzzleProgress = (
@@ -115,8 +138,10 @@ export default function App() {
     newHints: string[],
     solved: boolean,
     failed: boolean,
-    revealed: boolean = false
+    revealed: boolean = false,
+    addedExtraAttempts: number = extraAttempts
   ) => {
+    if (!currentPuzzle?.id) return;
     try {
       const allProgress = JSON.parse(localStorage.getItem(PROGRESS_STORAGE_KEY) || '{}');
       allProgress[currentPuzzle.id] = {
@@ -125,6 +150,7 @@ export default function App() {
         isSolved: solved,
         isFailed: failed,
         isRevealed: revealed,
+        extraAttempts: addedExtraAttempts,
         updatedAt: new Date().toISOString()
       };
       localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(allProgress));
@@ -140,7 +166,7 @@ export default function App() {
     setIsRevealed(true);
     savePuzzleProgress(attempts, unlockedHints, false, true, true);
     recordGameResult(false, attempts.length);
-    showToast("تم إظهار حل اللغز والإجابة الصحيحة بنجاح");
+    showToast("تم إظهار حل اللغز والإجابة النموذجية بنجاح");
   };
 
   // Handle guess submission
@@ -164,7 +190,7 @@ export default function App() {
       return true;
     } else {
       playSound('wrong');
-      if (newAttempts.length >= MAX_ATTEMPTS) {
+      if (newAttempts.length >= effectiveMaxAttempts) {
         setIsFailed(true);
         savePuzzleProgress(newAttempts, unlockedHints, false, true);
         recordGameResult(false, newAttempts.length);
@@ -185,7 +211,6 @@ export default function App() {
       let newStreak = prev.currentStreak;
       if (isDaily && isNewPlay) {
         if (won) {
-          // Check if last played was yesterday
           const yesterday = new Date();
           yesterday.setDate(yesterday.getDate() - 1);
           const yesterdayStr = yesterday.toISOString().split('T')[0];
@@ -240,38 +265,83 @@ export default function App() {
     }
   };
 
-  // Generate new AI puzzle
-  const handleGenerateAiPuzzle = async () => {
+  // Reward claim router
+  const handleClaimReward = () => {
+    if (rewardModalState.type === 'reveal') {
+      handleRevealSolution();
+    } else if (rewardModalState.type === 'extraAttempts') {
+      const updated = extraAttempts + 2;
+      setExtraAttempts(updated);
+      setIsFailed(false);
+      savePuzzleProgress(attempts, unlockedHints, false, false, false, updated);
+      playSound('unlock');
+      showToast("🎉 حصلت على محاولتين إضافيتين! استمر في المحاولة");
+    }
+  };
+
+  // Navigation Arrows: Next Question (⬅️)
+  const handleNextQuestion = async () => {
+    if (currentQueueIndex < puzzlesQueue.length - 1) {
+      const nextIdx = currentQueueIndex + 1;
+      setCurrentQueueIndex(nextIdx);
+      setIsDaily(nextIdx === 0);
+    } else {
+      // Generate next AI question and append to queue
+      setIsGeneratingAi(true);
+      showToast("جاري توليد السؤال التالي بالذكاء الاصطناعي...");
+
+      try {
+        const newPuzzle = await fetchNewAiPuzzle(selectedCategory, 'medium');
+        setPuzzlesQueue((prev) => [...prev, newPuzzle]);
+        setCurrentQueueIndex((prev) => prev + 1);
+        setIsDaily(false);
+        showToast("✨ تم الانتقال إلى السؤال التالي!");
+      } catch (e) {
+        const nextIndex = Math.floor(Math.random() * CURATED_PUZZLES.length);
+        const fallbackPuz: Puzzle = {
+          ...CURATED_PUZZLES[nextIndex],
+          id: `ai_${Date.now()}`,
+          isAiGenerated: true
+        };
+        setPuzzlesQueue((prev) => [...prev, fallbackPuz]);
+        setCurrentQueueIndex((prev) => prev + 1);
+        setIsDaily(false);
+      } finally {
+        setIsGeneratingAi(false);
+      }
+    }
+  };
+
+  // Navigation Arrows: Previous Question (➡️)
+  const handlePrevQuestion = () => {
+    if (currentQueueIndex > 0) {
+      const prevIdx = currentQueueIndex - 1;
+      setCurrentQueueIndex(prevIdx);
+      setIsDaily(prevIdx === 0);
+    }
+  };
+
+  // Generate new AI puzzle (supporting dynamic categories & seeds)
+  const handleGenerateAiPuzzle = async (overrideCategory?: PuzzleCategory | 'all') => {
+    const catToUse = overrideCategory || selectedCategory;
     setIsGeneratingAi(true);
-    showToast("جاري توليد لغز ذكاء اصطناعي جديد ومبتكر...");
+    showToast("جاري ابتكار سؤال ذكاء اصطناعي جديد ومتغير...");
 
     try {
-      const res = await fetch("/api/generate-puzzle", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category: "visual_rebus", difficulty: "medium" })
-      });
-
-      const data = await res.json();
-      if (data.success && data.puzzle) {
-        setCurrentPuzzle(data.puzzle);
-        setIsDaily(false);
-        showToast("✨ تم إنشاء لغز الذكاء الاصطناعي بنجاح!");
-      } else {
-        // Pick random from curated puzzles
-        const nextIndex = Math.floor(Math.random() * CURATED_PUZZLES.length);
-        const randomPuz = CURATED_PUZZLES[nextIndex];
-        setCurrentPuzzle({
-          ...randomPuz,
-          id: `rand_${Date.now()}`,
-          isAiGenerated: true
-        });
-        setIsDaily(false);
-        showToast("✨ تم تجهيز تحدي ذكاء جديد!");
-      }
+      const newPuzzle = await fetchNewAiPuzzle(catToUse, 'medium');
+      setPuzzlesQueue((prev) => [...prev, newPuzzle]);
+      setCurrentQueueIndex(puzzlesQueue.length);
+      setIsDaily(false);
+      showToast("✨ تم إنشاء لغز الذكاء الاصطناعي بنجاح!");
     } catch (e) {
       const nextIndex = Math.floor(Math.random() * CURATED_PUZZLES.length);
-      setCurrentPuzzle(CURATED_PUZZLES[nextIndex]);
+      const fallbackPuz: Puzzle = {
+        ...CURATED_PUZZLES[nextIndex],
+        id: `ai_${Date.now()}`,
+        isAiGenerated: true
+      };
+      setPuzzlesQueue((prev) => [...prev, fallbackPuz]);
+      setCurrentQueueIndex(puzzlesQueue.length);
       setIsDaily(false);
     } finally {
       setIsGeneratingAi(false);
@@ -279,12 +349,18 @@ export default function App() {
   };
 
   const handleResetToDaily = () => {
-    setCurrentPuzzle(todayPuzzle);
+    setCurrentQueueIndex(0);
     setIsDaily(true);
   };
 
   const handleSelectFromArchive = (selected: Puzzle) => {
-    setCurrentPuzzle(selected);
+    const existingIdx = puzzlesQueue.findIndex((p) => p.id === selected.id);
+    if (existingIdx >= 0) {
+      setCurrentQueueIndex(existingIdx);
+    } else {
+      setPuzzlesQueue((prev) => [...prev, selected]);
+      setCurrentQueueIndex(puzzlesQueue.length);
+    }
     setIsDaily(selected.id === todayPuzzle.id);
   };
 
@@ -304,13 +380,25 @@ export default function App() {
           stats={stats}
           onOpenStats={() => setStatsModalOpen(true)}
           onOpenArchive={() => setArchiveModalOpen(true)}
-          onGenerateAiPuzzle={handleGenerateAiPuzzle}
+          onGenerateAiPuzzle={() => handleGenerateAiPuzzle()}
           isGeneratingAi={isGeneratingAi}
           isDaily={isDaily}
           onResetToDaily={handleResetToDaily}
         />
 
-        {/* Top Banner Ad */}
+        {/* AI Category & Infinite Generation Bar */}
+        <AiCategoryBar
+          selectedCategory={selectedCategory}
+          onSelectCategory={(cat) => {
+            setSelectedCategory(cat);
+            handleGenerateAiPuzzle(cat);
+          }}
+          onGenerateNew={() => handleGenerateAiPuzzle()}
+          isGenerating={isGeneratingAi}
+          isDaily={isDaily}
+        />
+
+        {/* Top Banner Ad (320x50 Non-intrusive) */}
         <BannerAd position="top" zoneId="11787291" />
 
         {/* Main Game Stage */}
@@ -318,30 +406,52 @@ export default function App() {
           <PuzzleCard
             puzzle={currentPuzzle}
             attempts={attempts}
-            maxAttempts={MAX_ATTEMPTS}
+            maxAttempts={effectiveMaxAttempts}
             unlockedHints={unlockedHints}
             isSolved={isSolved}
             isDaily={isDaily}
+            questionIndex={currentQueueIndex + 1}
+            totalQuestionsCount={puzzlesQueue.length}
+            onNextQuestion={handleNextQuestion}
+            onPrevQuestion={handlePrevQuestion}
+            canGoPrev={currentQueueIndex > 0}
+            canGoNext={true}
+            isGeneratingAi={isGeneratingAi}
           />
 
           <AnswerSection
             puzzle={currentPuzzle}
             onSubmitGuess={handleSubmitGuess}
-            onOpenHintModal={() => setHintModalOpen(true)}
+            onOpenHintModal={() => setRewardModalState({
+              isOpen: true,
+              type: 'hint'
+            })}
+            onOpenRewardedSolutionModal={() => setRewardModalState({
+              isOpen: true,
+              type: 'reveal',
+              title: "مشاهدة إعلان لكشف حل اللغز",
+              desc: "شاهد إعلاناً تجارياً سريعاً لكشف الإجابة النموذجية وشرح اللغز كاملاً"
+            })}
+            onOpenExtraAttemptsModal={() => setRewardModalState({
+              isOpen: true,
+              type: 'extraAttempts',
+              title: "كسب محاولتين إضافيتين",
+              desc: "شاهد إعلاناً تجارياً لكسب محاولتين (+2) ومواصلة التحدي الآن"
+            })}
             onOpenShareModal={() => setShareModalOpen(true)}
             onRevealSolution={handleRevealSolution}
             isSolved={isSolved}
             isFailed={isFailed}
             isRevealed={isRevealed}
             attempts={attempts}
-            maxAttempts={MAX_ATTEMPTS}
+            maxAttempts={effectiveMaxAttempts}
             unlockedHintsCount={unlockedHints.length}
-            onNextPuzzle={handleGenerateAiPuzzle}
+            onNextPuzzle={handleNextQuestion}
             isDaily={isDaily}
           />
         </main>
 
-        {/* Bottom Banner Ad */}
+        {/* Bottom Banner Ad (320x50 Non-intrusive) */}
         <BannerAd position="bottom" zoneId="11787291" />
 
         {/* SEO & Game Info Accordion / Explanatory Section */}
@@ -351,7 +461,7 @@ export default function App() {
             حول لعبة BrainRush AI وتحديات الذكاء اليومية
           </h3>
           <p className="leading-relaxed mb-3">
-            لعبة <strong>BrainRush AI</strong> هي منصة ألغاز تفاعلية يومية مصممة لتنشيط التفكير المنطقي، مهارات التحليل والاستنتاج، وقوة الملاحظة البصرية. يتم تجديد اللغز تلقائياً كل 24 ساعة لضمان منافسة متجددة بين الأصدقاء في كافة أنحاء العالم، مع إمكانية توليد ألغاز إضافية لا نهائية بالذكاء الاصطناعي.
+            لعبة <strong>BrainRush AI</strong> هي منصة ألغاز تفاعلية يومية مصممة لتنشيط التفكير المنطقي، مهارات التحليل والاستنتاج، وقوة الملاحظة البصرية. يتم تجديد اللغز تلقائياً كل 24 ساعة لضمان منافسة متجددة بين الأصدقاء في كافة أنحاء العالم، مع إمكانية توليد ألغاز إضافية لا نهائية بالذكاء الاصطناعي عبر مئات الآلاف من التركيبات المتنوعة.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] text-slate-400 mt-3 pt-3 border-t border-slate-900">
             <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/80">
@@ -359,11 +469,11 @@ export default function App() {
               حل لغز اليوم للحفاظ على سلسلة أيامك المتتالية (Streak).
             </div>
             <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/80">
-              <span className="font-bold text-slate-200 block mb-0.5">💡 تلميحات ذكية</span>
-              شاهد إعلاناً قصيراً لفتح مساعدة الذكاء الاصطناعي عند التعثر.
+              <span className="font-bold text-slate-200 block mb-0.5">💡 تلميحات ومكافآت ذكية</span>
+              شاهد إعلاناً تجارياً لفتح مساعدة الذكاء الاصطناعي أو كشف الحل عند التعثر.
             </div>
             <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/80">
-              <span className="font-bold text-slate-200 block mb-0.5">🚀 مشاركة عالمية فيروسية</span>
+              <span className="font-bold text-slate-200 block mb-0.5">🚀 مشاركة وتحديات الأصدقاء</span>
               شارك التحدي مع أصدقائك عبر واتساب وتليجرام وتحدَّهم لمعرفة الأذكى!
             </div>
           </div>
@@ -393,14 +503,17 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Modals */}
+      {/* Unified Multi-Reward Ad Modal */}
       <HintModal
-        isOpen={hintModalOpen}
-        onClose={() => setHintModalOpen(false)}
+        isOpen={rewardModalState.isOpen}
+        onClose={() => setRewardModalState(prev => ({ ...prev, isOpen: false }))}
         puzzle={currentPuzzle}
         currentHintIndex={unlockedHints.length}
         onUnlockHint={handleUnlockHint}
         currentGuess={attempts[attempts.length - 1] || ""}
+        customTitle={rewardModalState.title}
+        customRewardDescription={rewardModalState.desc}
+        onRewardClaimed={rewardModalState.type !== 'hint' ? handleClaimReward : undefined}
       />
 
       <ShareModal
@@ -408,7 +521,7 @@ export default function App() {
         onClose={() => setShareModalOpen(false)}
         puzzle={currentPuzzle}
         attemptsCount={attempts.length}
-        maxAttempts={MAX_ATTEMPTS}
+        maxAttempts={effectiveMaxAttempts}
         hintsUsed={unlockedHints.length}
         isWon={isSolved}
         stats={stats}

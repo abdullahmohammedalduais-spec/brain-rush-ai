@@ -152,13 +152,24 @@ ${currentUrl}`;
         </button>
 
         <div className="text-center mb-5">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-indigo-500/25">
-            {isWon ? <Trophy className="w-8 h-8 text-amber-300" /> : <Sparkles className="w-8 h-8 text-white" />}
+          <div className="relative inline-block mx-auto mb-3">
+            <div className="absolute -inset-1.5 bg-gradient-to-r from-amber-400 via-indigo-500 to-purple-500 rounded-2xl blur-xs opacity-80 animate-glow"></div>
+            <img
+              src="/app-icon.jpg"
+              alt="BrainRush AI"
+              referrerPolicy="no-referrer"
+              className="relative w-16 h-16 rounded-2xl object-cover shadow-xl border-2 border-indigo-400/50"
+            />
+            {isWon && (
+              <span className="absolute -bottom-2 -right-2 bg-amber-500 text-slate-950 p-1.5 rounded-full shadow-lg">
+                <Trophy className="w-4 h-4 fill-current" />
+              </span>
+            )}
           </div>
-          <h2 className="text-xl font-extrabold text-white">
+          <h2 className="text-xl font-black text-white">
             {isWon ? "رائع! أحسنت صنعاً يا بطل 👏" : "محاولة رائعة! التحدي القادم بانتظارك"}
           </h2>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-300 mt-1">
             شارك نتيجتك مع أصدقائك وتحدّهم لمعرفة من هو الأسرع ذكاءً!
           </p>
         </div>

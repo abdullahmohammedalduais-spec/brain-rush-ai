@@ -13,8 +13,6 @@ export const BannerAd: React.FC<BannerAdProps> = ({
   useEffect(() => {
     if (!adContainerRef.current) return;
 
-    // Create an isolated sandboxed iframe for the 320x50 banner ad
-    // This prevents any script from redirecting the main window
     try {
       const iframe = document.createElement('iframe');
       iframe.width = '320';
@@ -22,7 +20,7 @@ export const BannerAd: React.FC<BannerAdProps> = ({
       iframe.style.border = 'none';
       iframe.style.overflow = 'hidden';
       iframe.scrolling = 'no';
-      iframe.title = 'إعلان ممول';
+      iframe.title = 'إعلان تجاري معتمد (320x50)';
       iframe.srcdoc = `<!DOCTYPE html>
 <html>
   <head>
@@ -51,19 +49,26 @@ export const BannerAd: React.FC<BannerAdProps> = ({
     } catch (e) {
       console.warn('Banner mount exception:', e);
     }
-  }, []);
+  }, [position]);
+
+  const positionLabel = {
+    top: 'مساحة إعلانية معتمدة',
+    middle: 'مساحة إعلانية معتمدة',
+    bottom: 'مساحة إعلانية تجارية معتمدة (320x50)',
+    sticky: 'مساحة إعلانية معتمدة'
+  }[position];
 
   return (
     <aside 
-      aria-label="مساحة إعلانية" 
-      className={`w-full max-w-2xl mx-auto px-3 my-2.5 flex flex-col items-center justify-center transition-all ${
+      aria-label="مساحة إعلانية تجارية" 
+      className={`w-full max-w-2xl mx-auto px-3 my-2 flex flex-col items-center justify-center transition-all ${
         position === 'sticky' ? 'sticky bottom-16 z-30 shadow-2xl py-1' : ''
       }`}
     >
       <div className="flex flex-col items-center justify-center">
         <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium mb-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-          <span>إعلان ممول (320x50)</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          <span>{positionLabel}</span>
         </div>
 
         {/* Static, Rectangular 320x50 Banner Container */}

@@ -8,6 +8,8 @@ interface AnswerSectionProps {
   onOpenHintModal: () => void;
   onOpenShareModal: () => void;
   onRevealSolution: () => void;
+  onOpenRewardedSolutionModal?: () => void;
+  onOpenExtraAttemptsModal?: () => void;
   isSolved: boolean;
   isFailed: boolean;
   isRevealed?: boolean;
@@ -24,6 +26,8 @@ export const AnswerSection: React.FC<AnswerSectionProps> = ({
   onOpenHintModal,
   onOpenShareModal,
   onRevealSolution,
+  onOpenRewardedSolutionModal,
+  onOpenExtraAttemptsModal,
   isSolved,
   isFailed,
   isRevealed = false,
@@ -140,7 +144,7 @@ export const AnswerSection: React.FC<AnswerSectionProps> = ({
             </div>
 
             {/* Direct Solution Reveal Button */}
-            <div className="mt-2.5 pt-2 border-t border-slate-800/80">
+            <div className="mt-2.5 pt-2 border-t border-slate-800/80 space-y-2">
               <button
                 type="button"
                 onClick={() => setShowRevealModal(true)}
@@ -149,6 +153,17 @@ export const AnswerSection: React.FC<AnswerSectionProps> = ({
                 <HelpCircle className="w-4 h-4 text-indigo-400" />
                 <span>إذا لم تعرف الحل اضغط لمشاهدة حل سؤال اللغز</span>
               </button>
+
+              {onOpenExtraAttemptsModal && attempts.length >= maxAttempts - 2 && attempts.length > 0 && (
+                <button
+                  type="button"
+                  onClick={onOpenExtraAttemptsModal}
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-950/60 via-slate-900 to-teal-950/60 hover:from-emerald-900/80 hover:to-teal-900/80 active:scale-98 border border-emerald-500/40 text-emerald-300 font-bold py-2.5 px-4 rounded-xl transition-all text-xs shadow-sm"
+                >
+                  <Sparkles className="w-4 h-4 text-emerald-400" />
+                  <span>مشاهدة إعلان لكسب محاولتين إضافيتين والاستمرار (+2)</span>
+                </button>
+              )}
             </div>
           </div>
         ) : (
@@ -239,11 +254,12 @@ export const AnswerSection: React.FC<AnswerSectionProps> = ({
             {/* Action Buttons: Try Another Puzzle */}
             {onNextPuzzle && (
               <button
+                type="button"
                 onClick={onNextPuzzle}
-                className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-750 text-slate-200 font-bold py-3 px-4 rounded-xl border border-slate-700 transition-all text-sm active:scale-98"
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-black py-3.5 px-4 rounded-xl shadow-lg shadow-indigo-600/30 transition-all text-sm active:scale-98 cursor-pointer"
               >
-                <Sparkles className="w-4 h-4 text-purple-400" />
-                <span>بدء تحدي لغز ذكاء آخر بالـ AI</span>
+                <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+                <span>الانتقال إلى السؤال التالي (بالذكاء الاصطناعي) ⬅️</span>
               </button>
             )}
           </div>
@@ -277,24 +293,40 @@ export const AnswerSection: React.FC<AnswerSectionProps> = ({
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowRevealModal(false);
-                  onRevealSolution();
-                }}
-                className="w-full sm:flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-3 px-4 rounded-xl text-xs sm:text-sm shadow-lg shadow-indigo-600/25 transition-all active:scale-95"
-              >
-                نعم، اعرض الإجابة والحل الكامل
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowRevealModal(false)}
-                className="w-full sm:w-auto bg-slate-800 hover:bg-slate-750 text-slate-300 font-semibold py-3 px-4 rounded-xl text-xs sm:text-sm transition-all"
-              >
-                المحاولة بنفسي
-              </button>
+            <div className="space-y-2 pt-1">
+              {onOpenRewardedSolutionModal && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRevealModal(false);
+                    onOpenRewardedSolutionModal();
+                  }}
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black py-3 px-4 rounded-xl text-xs sm:text-sm shadow-lg shadow-amber-500/20 transition-all active:scale-95 cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4 text-slate-950" />
+                  <span>مشاهدة إعلان تجاري لكشف الحل والتفسير 🎁</span>
+                </button>
+              )}
+
+              <div className="flex flex-col sm:flex-row items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRevealModal(false);
+                    onRevealSolution();
+                  }}
+                  className="w-full sm:flex-1 bg-indigo-600/90 hover:bg-indigo-500 text-white font-bold py-2.5 px-4 rounded-xl text-xs shadow-md transition-all active:scale-95 border border-indigo-500/30 cursor-pointer"
+                >
+                  كشف الإجابة والحل مباشرة
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowRevealModal(false)}
+                  className="w-full sm:w-auto bg-slate-800 hover:bg-slate-750 text-slate-300 font-medium py-2.5 px-4 rounded-xl text-xs transition-all cursor-pointer"
+                >
+                  المحاولة بنفسي
+                </button>
+              </div>
             </div>
           </div>
         </div>
