@@ -27,6 +27,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
     <!-- Monetag Verification Meta -->
+    <meta name="monetag" content="aaebdac38eb9789affbfff2f1ccbc7fa" />
     <meta name="monetag-domain-verification" content="3nbf4.com" />
     <meta name="monetag-zone" content="11787291" />
 
@@ -49,14 +50,39 @@
     }
     </script>
 
-    <!-- Monetag Zone #11787291 Integration Tag -->
+    <!-- Monetag Zone #11787291 MultiTag & SDK Integration -->
     <script>(function(s,u,z,p){s.src=u;s.setAttribute('data-zone',z);p.appendChild(s);})(document.createElement('script'),'https://3nbf4.com/tag.min.js',11787291,document.head||document.documentElement);</script>
+    <script src="https://3nbf4.com/tag.min.js" data-zone="11787291" data-cfasync="false" async></script>
+
+    <!-- Monetag Interstitial / Rewarded Helper -->
+    <script>
+      window.monetagZoneId = 11787291;
+      window.triggerMonetagReward = function(callback) {
+        if (typeof window.show_11787291 === 'function') {
+          try {
+            var res = window.show_11787291();
+            if (res && typeof res.then === 'function') {
+              res.then(function() { if (callback) callback(true); })
+                 .catch(function() { if (callback) callback(false); });
+              return;
+            }
+          } catch(e) {
+            console.warn("Monetag call error:", e);
+          }
+        }
+        if (callback) callback(true);
+      };
+    </script>
 
     <!-- Monetag Service Worker Registration -->
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function() {});
+          navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .then(function(reg) {
+              console.log('Monetag Service Worker registered at scope:', reg.scope);
+            })
+            .catch(function() {});
         });
       }
     </script>

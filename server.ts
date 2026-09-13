@@ -40,7 +40,7 @@ function getAIClient() {
 }
 
 // Resilient helper to call Gemini with multi-model fallback on 503 / high demand
-const CANDIDATE_MODELS = ["gemini-3.8-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+const CANDIDATE_MODELS = ["gemini-3.1-flash-lite", "gemini-flash-latest", "gemini-3.8-flash"];
 
 async function generateWithFallback(prompt: string, jsonMode: boolean = false): Promise<string> {
   const ai = getAIClient();
@@ -51,21 +51,26 @@ async function generateWithFallback(prompt: string, jsonMode: boolean = false): 
   let lastError: any = null;
 
   for (const model of CANDIDATE_MODELS) {
-    try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-        config: jsonMode ? { responseMimeType: "application/json" } : undefined
-      });
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: prompt,
+          config: jsonMode ? { responseMimeType: "application/json" } : undefined
+        });
 
-      if (response && response.text) {
-        return response.text;
+        if (response && response.text) {
+          return response.text;
+        }
+      } catch (err: any) {
+        lastError = err;
+        const isHighDemand = err?.status === 503 || err?.code === 503 || `${err?.message}`.includes('503');
+        if (isHighDemand && attempt === 0) {
+          await new Promise((r) => setTimeout(r, 500));
+          continue;
+        }
+        break;
       }
-    } catch (err: any) {
-      lastError = err;
-      console.warn(`[AI Generation] Model ${model} encountered error (${err?.status || err?.message || 'unknown'}). Trying fallback model...`);
-      // Brief pause before trying fallback
-      await new Promise((r) => setTimeout(r, 400));
     }
   }
 
@@ -205,8 +210,8 @@ app.post("/api/generate-puzzle", async (req, res) => {
           }
         });
       }
-    } catch (aiErr: any) {
-      console.warn("[AI Generation] High demand or model error in generate-puzzle:", aiErr?.message || aiErr);
+    } catch (_aiErr: any) {
+      // Graceful fallback to backup puzzle library when AI model is temporarily busy
     }
 
     // Graceful fallback to backup puzzle library when AI model is temporarily experiencing high demand (503)
@@ -263,16 +268,14 @@ app.post("/api/ai-hint", async (req, res) => {
         success: true,
         hint: responseText.trim()
       });
-    } catch (hintErr: any) {
-      console.warn("[AI Hint] Failed to generate AI hint, falling back to preset hint:", hintErr?.message || hintErr);
+    } catch (_hintErr: any) {
       return res.json({
         success: false,
         fallback: true,
         message: "Model temporarily busy, using preset hint."
       });
     }
-  } catch (error: any) {
-    console.error("Error in /api/ai-hint:", error);
+  } catch (_error: any) {
     return res.json({
       success: false,
       fallback: true,

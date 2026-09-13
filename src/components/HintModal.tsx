@@ -55,6 +55,30 @@ export const HintModal: React.FC<HintModalProps> = ({
   const handleStartWatchAd = () => {
     setAdState('watching');
     setCountdown(5);
+
+    // Trigger Monetag Rewarded / Interstitial Ad (Zone ID: 11787291)
+    try {
+      if (typeof (window as any).show_11787291 === 'function') {
+        const adPromise = (window as any).show_11787291();
+        if (adPromise && typeof adPromise.then === 'function') {
+          adPromise
+            .then(() => {
+              setAdState('completed');
+            })
+            .catch((err: any) => {
+              console.warn('Monetag ad session:', err);
+            });
+        }
+      } else if (typeof (window as any).triggerMonetagReward === 'function') {
+        (window as any).triggerMonetagReward((completed: boolean) => {
+          if (completed) {
+            setAdState('completed');
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Monetag trigger attempt:', e);
+    }
   };
 
   const handleClaimHint = async () => {

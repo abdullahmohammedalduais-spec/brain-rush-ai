@@ -11,6 +11,24 @@ export const BannerAd: React.FC<BannerAdProps> = ({
   zoneId = '11787291'
 }) => {
   const adContainerRef = useRef<HTMLDivElement>(null);
+  const scriptInjected = useRef(false);
+
+  useEffect(() => {
+    if (!adContainerRef.current || scriptInjected.current) return;
+
+    try {
+      // Create and inject Monetag Banner script with Zone ID
+      const script = document.createElement('script');
+      script.src = 'https://3nbf4.com/tag.min.js';
+      script.setAttribute('data-zone', zoneId);
+      script.setAttribute('data-cfasync', 'false');
+      script.async = true;
+      adContainerRef.current.appendChild(script);
+      scriptInjected.current = true;
+    } catch (e) {
+      console.warn('Monetag banner script injection:', e);
+    }
+  }, [zoneId]);
 
   return (
     <aside 
@@ -30,12 +48,12 @@ export const BannerAd: React.FC<BannerAdProps> = ({
           </span>
         </div>
 
-        {/* Real ad container targeting Monetag */}
+        {/* Real Monetag Ad Container & Dynamic Zone Placement */}
         <div 
           ref={adContainerRef}
-          id={`ad-placement-${position}`}
+          id={`monetag-banner-${zoneId}-${position}`}
           data-zone={zoneId}
-          className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-950/70 rounded-xl p-3 border border-slate-800/70 hover:border-indigo-500/40 transition-all"
+          className="w-full flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-950/80 rounded-xl p-3 border border-slate-800/70 hover:border-indigo-500/40 transition-all"
         >
           <div className="flex items-center gap-3 text-right">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-600 flex items-center justify-center shrink-0 shadow-md shadow-indigo-600/20">
@@ -46,7 +64,7 @@ export const BannerAd: React.FC<BannerAdProps> = ({
                 تحديات الذكاء والألعاب التفاعلية اليومية
               </p>
               <p className="text-[11px] text-slate-400 line-clamp-1">
-                اكتشف أقوى العروض الحصرية والفرص المميزة عبر شركائنا المعتمدين
+                اكتشف أقوى العروض الحصرية والفرص المميزة عبر شبكة شركائنا المعتمدين
               </p>
             </div>
           </div>
@@ -57,7 +75,7 @@ export const BannerAd: React.FC<BannerAdProps> = ({
             rel="noopener noreferrer"
             className="shrink-0 flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-semibold py-2 px-4 rounded-xl shadow-md shadow-indigo-600/20 transition-all"
           >
-            <span>استكشف الآن</span>
+            <span>استكشف العرض</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>
