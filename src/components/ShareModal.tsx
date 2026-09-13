@@ -27,7 +27,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
   if (!isOpen) return null;
 
-  const currentUrl = typeof window !== 'undefined' ? window.location.origin : 'https://3nbf4.com';
+  const currentUrl = typeof window !== 'undefined' && window.location.origin ? window.location.origin : '';
   
   // Build Wordle-like grid representation
   const generateGrid = () => {

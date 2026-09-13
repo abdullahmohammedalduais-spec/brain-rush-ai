@@ -55,30 +55,6 @@ export const HintModal: React.FC<HintModalProps> = ({
   const handleStartWatchAd = () => {
     setAdState('watching');
     setCountdown(5);
-
-    // Trigger Monetag Rewarded / Interstitial Ad (Zone ID: 11787291)
-    try {
-      if (typeof (window as any).show_11787291 === 'function') {
-        const adPromise = (window as any).show_11787291();
-        if (adPromise && typeof adPromise.then === 'function') {
-          adPromise
-            .then(() => {
-              setAdState('completed');
-            })
-            .catch((err: any) => {
-              console.warn('Monetag ad session:', err);
-            });
-        }
-      } else if (typeof (window as any).triggerMonetagReward === 'function') {
-        (window as any).triggerMonetagReward((completed: boolean) => {
-          if (completed) {
-            setAdState('completed');
-          }
-        });
-      }
-    } catch (e) {
-      console.warn('Monetag trigger attempt:', e);
-    }
   };
 
   const handleClaimHint = async () => {
@@ -187,26 +163,33 @@ export const HintModal: React.FC<HintModalProps> = ({
             </div>
 
             {/* Partner Sponsor Banner in Rewarded Window */}
-            <div className="w-full bg-slate-950 border border-slate-800/80 rounded-xl p-3.5 text-right">
-              <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1">
-                <span>إعلان ممول</span>
+            <div className="w-full bg-slate-950 border border-slate-800/80 rounded-xl p-3 text-center flex flex-col items-center justify-center">
+              <div className="w-full flex items-center justify-between text-[11px] text-slate-500 mb-2">
+                <span>إعلان ممول داخل اللعبة</span>
                 <span className="text-emerald-400 flex items-center gap-1 font-medium">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                  جاري المشاهدة
+                  جاري احتساب المكافأة
                 </span>
               </div>
-              <p className="text-xs font-semibold text-slate-200">
-                استمتع بأحدث التطبيقات والألعاب والخدمات المميزة
-              </p>
-              <a
-                href="https://3nbf4.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 font-semibold mt-2"
-              >
-                <span>استكشف العرض الآن</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+              
+              {/* Sandboxed Adsterra Banner Container */}
+              <div className="w-[320px] h-[50px] bg-slate-900/90 rounded-lg overflow-hidden border border-slate-800 flex items-center justify-center mx-auto">
+                <iframe
+                  width="320"
+                  height="50"
+                  title="إعلان مكافأة"
+                  style={{ border: 'none', overflow: 'hidden' }}
+                  scrolling="no"
+                  srcDoc={`<!DOCTYPE html><html><head><meta charset="UTF-8"><base target="_blank"><style>body{margin:0;padding:0;display:flex;align-items:center;justify-content:center;background:transparent;overflow:hidden;}</style></head><body><script type="text/javascript">atOptions={'key':'cb538daa0dbcfa1519a78b30f3cd09b1','format':'iframe','height':50,'width':320,'params':{}};</script><script type="text/javascript" src="https://www.highrevenueformat.com/cb538daa0dbcfa1519a78b30f3cd09b1/invoke.js"></script></body></html>`}
+                />
+              </div>
+
+              <div className="w-full h-1.5 bg-slate-800 rounded-full mt-3 overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-amber-500 to-emerald-400 transition-all duration-1000"
+                  style={{ width: `${(5 - countdown) * 20}%` }}
+                ></div>
+              </div>
             </div>
           </div>
         )}

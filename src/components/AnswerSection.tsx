@@ -134,7 +134,7 @@ export const AnswerSection: React.FC<AnswerSectionProps> = ({
                 <span>
                   {unlockedHintsCount >= puzzle.hints.length
                     ? "تم فتح جميع تلميحات هذا اللغز"
-                    : `طلب تلميح ذكي بالذكاء الاصطناعي (متبقي ${puzzle.hints.length - unlockedHintsCount})`}
+                    : `طلب تلميح ذكي / مشاهدة إعلان (متبقي ${puzzle.hints.length - unlockedHintsCount})`}
                 </span>
               </button>
             </div>

@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-import { Sparkles, ExternalLink } from 'lucide-react';
 
 interface BannerAdProps {
   position?: 'top' | 'middle' | 'bottom' | 'sticky';
@@ -8,77 +7,70 @@ interface BannerAdProps {
 
 export const BannerAd: React.FC<BannerAdProps> = ({
   position = 'top',
-  zoneId = '11787291'
 }) => {
   const adContainerRef = useRef<HTMLDivElement>(null);
-  const scriptInjected = useRef(false);
 
   useEffect(() => {
-    if (!adContainerRef.current || scriptInjected.current) return;
+    if (!adContainerRef.current) return;
 
+    // Create an isolated sandboxed iframe for the 320x50 banner ad
+    // This prevents any script from redirecting the main window
     try {
-      // Create and inject Monetag Banner script with Zone ID
-      const script = document.createElement('script');
-      script.src = 'https://3nbf4.com/tag.min.js';
-      script.setAttribute('data-zone', zoneId);
-      script.setAttribute('data-cfasync', 'false');
-      script.async = true;
-      adContainerRef.current.appendChild(script);
-      scriptInjected.current = true;
+      const iframe = document.createElement('iframe');
+      iframe.width = '320';
+      iframe.height = '50';
+      iframe.style.border = 'none';
+      iframe.style.overflow = 'hidden';
+      iframe.scrolling = 'no';
+      iframe.title = 'إعلان ممول';
+      iframe.srcdoc = `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <base target="_blank">
+    <style>
+      body { margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script type="text/javascript">
+      atOptions = {
+        'key' : 'cb538daa0dbcfa1519a78b30f3cd09b1',
+        'format' : 'iframe',
+        'height' : 50,
+        'width' : 320,
+        'params' : {}
+      };
+    </script>
+    <script type="text/javascript" src="https://www.highrevenueformat.com/cb538daa0dbcfa1519a78b30f3cd09b1/invoke.js"></script>
+  </body>
+</html>`;
+
+      adContainerRef.current.innerHTML = '';
+      adContainerRef.current.appendChild(iframe);
     } catch (e) {
-      console.warn('Monetag banner script injection:', e);
+      console.warn('Banner mount exception:', e);
     }
-  }, [zoneId]);
+  }, []);
 
   return (
     <aside 
       aria-label="مساحة إعلانية" 
-      className={`w-full max-w-2xl mx-auto px-3 my-3 transition-all ${
-        position === 'sticky' ? 'sticky bottom-2 z-20 shadow-2xl' : ''
+      className={`w-full max-w-2xl mx-auto px-3 my-2.5 flex flex-col items-center justify-center transition-all ${
+        position === 'sticky' ? 'sticky bottom-16 z-30 shadow-2xl py-1' : ''
       }`}
     >
-      <div className="relative overflow-hidden rounded-2xl border border-slate-800/80 bg-gradient-to-r from-slate-900/90 via-slate-900 to-indigo-950/30 p-2.5 sm:p-3 text-slate-300 shadow-md">
-        <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium mb-1.5 px-1">
-          <span className="flex items-center gap-1.5 text-slate-400">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
-            <span>إعلان ممول</span>
-          </span>
-          <span className="bg-slate-800/80 text-slate-400 px-1.5 py-0.5 rounded text-[10px] tracking-wider font-mono uppercase">
-            AD
-          </span>
+      <div className="flex flex-col items-center justify-center">
+        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium mb-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+          <span>إعلان ممول (320x50)</span>
         </div>
 
-        {/* Real Monetag Ad Container & Dynamic Zone Placement */}
+        {/* Static, Rectangular 320x50 Banner Container */}
         <div 
           ref={adContainerRef}
-          id={`monetag-banner-${zoneId}-${position}`}
-          data-zone={zoneId}
-          className="w-full flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-950/80 rounded-xl p-3 border border-slate-800/70 hover:border-indigo-500/40 transition-all"
-        >
-          <div className="flex items-center gap-3 text-right">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-600 flex items-center justify-center shrink-0 shadow-md shadow-indigo-600/20">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className="text-xs sm:text-sm font-bold text-slate-100 line-clamp-1">
-                تحديات الذكاء والألعاب التفاعلية اليومية
-              </p>
-              <p className="text-[11px] text-slate-400 line-clamp-1">
-                اكتشف أقوى العروض الحصرية والفرص المميزة عبر شبكة شركائنا المعتمدين
-              </p>
-            </div>
-          </div>
-
-          <a
-            href="https://3nbf4.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0 flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-semibold py-2 px-4 rounded-xl shadow-md shadow-indigo-600/20 transition-all"
-          >
-            <span>استكشف العرض</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-        </div>
+          className="w-[320px] h-[50px] bg-slate-950 rounded-lg overflow-hidden border border-slate-800/80 flex items-center justify-center shadow-md"
+        />
       </div>
     </aside>
   );
