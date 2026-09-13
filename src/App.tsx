@@ -10,7 +10,7 @@ import { ArchiveModal } from './components/ArchiveModal';
 import { AiCategoryBar } from './components/AiCategoryBar';
 import { getDailyPuzzleForDate, CURATED_PUZZLES } from './data/dailyPuzzles';
 import { Puzzle, PlayerStats, PuzzleCategory } from './types';
-import { fetchNewAiPuzzle } from './utils/aiPuzzleEngine';
+import { fetchNewAiPuzzle, generateProceduralPuzzle } from './utils/aiPuzzleEngine';
 import { isAnswerCorrect } from './utils/arabic';
 import { playSound } from './utils/audio';
 import { Sparkles, Brain, Trophy, Share2 } from 'lucide-react';
@@ -288,21 +288,16 @@ export default function App() {
     } else {
       // Generate next AI question and append to queue
       setIsGeneratingAi(true);
-      showToast("جاري توليد السؤال التالي بالذكاء الاصطناعي...");
+      showToast("جاري ابتكار سؤال فريد جديد بالذكاء الاصطناعي...");
 
       try {
         const newPuzzle = await fetchNewAiPuzzle(selectedCategory, 'medium');
         setPuzzlesQueue((prev) => [...prev, newPuzzle]);
         setCurrentQueueIndex((prev) => prev + 1);
         setIsDaily(false);
-        showToast("✨ تم الانتقال إلى السؤال التالي!");
+        showToast("✨ تم الانتقال إلى السؤال التالي الفريد!");
       } catch (e) {
-        const nextIndex = Math.floor(Math.random() * CURATED_PUZZLES.length);
-        const fallbackPuz: Puzzle = {
-          ...CURATED_PUZZLES[nextIndex],
-          id: `ai_${Date.now()}`,
-          isAiGenerated: true
-        };
+        const fallbackPuz = generateProceduralPuzzle(selectedCategory, 'medium');
         setPuzzlesQueue((prev) => [...prev, fallbackPuz]);
         setCurrentQueueIndex((prev) => prev + 1);
         setIsDaily(false);
@@ -325,21 +320,16 @@ export default function App() {
   const handleGenerateAiPuzzle = async (overrideCategory?: PuzzleCategory | 'all') => {
     const catToUse = overrideCategory || selectedCategory;
     setIsGeneratingAi(true);
-    showToast("جاري ابتكار سؤال ذكاء اصطناعي جديد ومتغير...");
+    showToast("جاري ابتكار سؤال ذكاء اصطناعي فريد وغير مكرر...");
 
     try {
       const newPuzzle = await fetchNewAiPuzzle(catToUse, 'medium');
       setPuzzlesQueue((prev) => [...prev, newPuzzle]);
       setCurrentQueueIndex(puzzlesQueue.length);
       setIsDaily(false);
-      showToast("✨ تم إنشاء لغز الذكاء الاصطناعي بنجاح!");
+      showToast("✨ تم إنشاء لغز جديد وفريد بنجاح!");
     } catch (e) {
-      const nextIndex = Math.floor(Math.random() * CURATED_PUZZLES.length);
-      const fallbackPuz: Puzzle = {
-        ...CURATED_PUZZLES[nextIndex],
-        id: `ai_${Date.now()}`,
-        isAiGenerated: true
-      };
+      const fallbackPuz = generateProceduralPuzzle(catToUse, 'medium');
       setPuzzlesQueue((prev) => [...prev, fallbackPuz]);
       setCurrentQueueIndex(puzzlesQueue.length);
       setIsDaily(false);
