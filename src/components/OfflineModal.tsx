@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { WifiOff, RefreshCw, Sparkles, CheckCircle2, Zap, BrainCircuit, ArrowLeft } from 'lucide-react';
+import { WifiOff, RefreshCw, Sparkles, CheckCircle2, Zap, BrainCircuit, ArrowLeft, Calendar, Layers } from 'lucide-react';
 import { playSound } from '../utils/audio';
 
 interface OfflineModalProps {
   onDismissToCurrentPuzzle?: () => void;
+  onOpenMonthlyVault?: () => void;
 }
 
-export const OfflineModal: React.FC<OfflineModalProps> = ({ onDismissToCurrentPuzzle }) => {
+export const OfflineModal: React.FC<OfflineModalProps> = ({ onDismissToCurrentPuzzle, onOpenMonthlyVault }) => {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isChecking, setIsChecking] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
@@ -170,28 +171,43 @@ export const OfflineModal: React.FC<OfflineModalProps> = ({ onDismissToCurrentPu
                 </div>
 
                 <p className="text-slate-400 text-xs leading-relaxed px-2">
-                  توليد مئات الآلاف من الألغاز الفريدة ومكافحة التكرار وتقييم الإجابات بدقة يحتاج إلى اتصال نشط بالشبكة لخوض أقوى التجارب الذهنية.
+                  عند توفر اتصال بالإنترنت يمكنك توليد ألغاز الذكاء الاصطناعي وتقييم الإجابات المتقدمة، أو يمكنك الاستمتاع ببنك ألغاز أشهر السنة أوفلاين بدون نت.
                 </p>
               </div>
 
               {/* Action Buttons */}
               <div className="w-full space-y-2.5">
+                {onOpenMonthlyVault && (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => {
+                      setIsDismissed(true);
+                      onOpenMonthlyVault();
+                    }}
+                    className="w-full py-3.5 px-4 rounded-2xl font-bold text-sm bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/25 border border-emerald-400/40 flex items-center justify-center gap-2 transition-all"
+                  >
+                    <Layers className="w-4 h-4 text-emerald-200" />
+                    <span>تصفح بنك ألغاز كل شهر (بدون نت)</span>
+                  </motion.button>
+                )}
+
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={handleManualCheck}
                   disabled={isChecking}
-                  className="w-full py-3.5 px-5 rounded-xl font-bold text-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-600/30 border border-indigo-400/40 flex items-center justify-center gap-2 transition-all disabled:opacity-60"
+                  className="w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-md border border-indigo-400/40 flex items-center justify-center gap-2 transition-all disabled:opacity-60"
                 >
                   <RefreshCw className={`w-4 h-4 ${isChecking ? 'animate-spin' : ''}`} />
-                  <span>{isChecking ? 'جاري فحص الاتصال...' : 'إعادة المحاولة وفحص الاتصال الآن'}</span>
+                  <span>{isChecking ? 'جاري فحص الاتصال...' : 'إعادة فحص الاتصال بالإنترنت'}</span>
                 </motion.button>
 
                 <button
                   onClick={handleContinueWithCached}
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 flex items-center justify-center gap-1.5 transition-colors"
+                  className="w-full py-2 px-3 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 flex items-center justify-center gap-1.5 transition-colors"
                 >
-                  <span>متابعة حل اللغز المحمّل حالياً</span>
+                  <span>متابعة حل اللغز الحالي</span>
                   <ArrowLeft className="w-3.5 h-3.5" />
                 </button>
               </div>

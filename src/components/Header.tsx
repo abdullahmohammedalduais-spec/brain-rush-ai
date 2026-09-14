@@ -72,13 +72,14 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden sm:inline">لغز بالـ AI</span>
           </button>
 
-          {/* Archive / Calendar */}
+          {/* Archive / Monthly Vault */}
           <button
             onClick={onOpenArchive}
-            title="أرشيف التحديات السابقة"
-            className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-100 hover:bg-slate-900 rounded-xl border border-slate-800 transition-colors"
+            title="بنك وأرشيف ألغاز فترات السنة (1,000 لغز/يوم أوفلاين)"
+            className="flex items-center gap-1 p-1.5 sm:px-2.5 sm:py-1.5 text-slate-300 hover:text-white bg-slate-900/90 hover:bg-slate-800 rounded-xl border border-slate-700/80 transition-colors text-xs font-semibold"
           >
-            <Calendar className="w-4 h-4" />
+            <Calendar className="w-4 h-4 text-indigo-400" />
+            <span className="hidden md:inline">ألغاز الأشهر</span>
           </button>
 
           {/* Stats Button */}

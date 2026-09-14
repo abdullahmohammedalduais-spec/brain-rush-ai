@@ -39,13 +39,152 @@ function getAIClient() {
   return genAI;
 }
 
-// Resilient helper to call Gemini with multi-model fallback on 503 / high demand
+// Groq API client integration
+let activeGroqKey = process.env.GROQ_API_KEY || "";
+let activeGroqModel = "allam-2-7b";
+let cachedModelKey = "";
+
+// Dynamic resolution of the best available Groq model
+async function resolveBestGroqModel(apiKey: string): Promise<string> {
+  if (activeGroqModel && cachedModelKey === apiKey) {
+    return activeGroqModel;
+  }
+
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/models", {
+      headers: { "Authorization": `Bearer ${apiKey}` }
+    });
+    if (res.ok) {
+      const data: any = await res.json();
+      const availableIds: string[] = (data?.data || []).map((m: any) => m.id);
+
+      const prioritizedList = [
+        "allam-2-7b",              // Arabic-native powerhouse
+        "qwen/qwen3.8-27b",        // High logic and reasoning
+        "groq/compound-mini",
+        "llama-3.3-70b-versatile", // If enabled on account
+        "llama-3.1-70b-versatile",
+        "llama-3.1-8b-instant",
+        "mixtral-8x7b-32768"
+      ];
+
+      for (const pref of prioritizedList) {
+        if (availableIds.includes(pref)) {
+          activeGroqModel = pref;
+          cachedModelKey = apiKey;
+          return pref;
+        }
+      }
+
+      // Any valid chat model that is not whisper / guard / audio
+      const chatModel = availableIds.find(id =>
+        !id.includes("whisper") &&
+        !id.includes("guard") &&
+        !id.includes("orpheus")
+      );
+      if (chatModel) {
+        activeGroqModel = chatModel;
+        cachedModelKey = apiKey;
+        return chatModel;
+      }
+    }
+  } catch (err) {
+    console.warn("Could not query Groq models endpoint:", err);
+  }
+
+  activeGroqModel = "allam-2-7b";
+  cachedModelKey = apiKey;
+  return "allam-2-7b";
+}
+
+async function generateWithGroq(prompt: string, jsonMode: boolean = false): Promise<string> {
+  if (!activeGroqKey) {
+    throw new Error("Groq API key not configured");
+  }
+
+  const primaryModel = await resolveBestGroqModel(activeGroqKey);
+  const candidateModels = Array.from(new Set([
+    primaryModel,
+    "allam-2-7b",
+    "qwen/qwen3.8-27b",
+    "groq/compound-mini",
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant"
+  ]));
+
+  let lastGroqError: any = null;
+
+  for (const model of candidateModels) {
+    try {
+      const systemContent = jsonMode
+        ? "أنت خبير ذكاء اصطناعي فائق الذكاء لتوليد ألغاز ذكاء عربية ممتعة ومعقدة ودقيقة بنسبة 100%. أجب دائماً بصيغة JSON فقط دون أي نصوص إضافية."
+        : "أنت خبير ألغاز ذكاء ومساعد ذكي فطن يجيب باللغة العربية الفصحى.";
+
+      const body: any = {
+        model,
+        messages: [
+          { role: "system", content: systemContent },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.75,
+        max_tokens: 1500
+      };
+
+      if (jsonMode) {
+        body.response_format = { type: "json_object" };
+      }
+
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${activeGroqKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        lastGroqError = new Error(`Groq API Error (${response.status} on ${model}): ${errText}`);
+        continue;
+      }
+
+      const data: any = await response.json();
+      const text = data?.choices?.[0]?.message?.content;
+      if (!text) {
+        lastGroqError = new Error(`Empty response from Groq API on model ${model}`);
+        continue;
+      }
+
+      activeGroqModel = model;
+      return text;
+    } catch (err: any) {
+      lastGroqError = err;
+    }
+  }
+
+  throw lastGroqError || new Error("Failed to generate with Groq candidate models");
+}
+
+// Resilient helper to call Groq or Gemini with multi-model fallback
 const CANDIDATE_MODELS = ["gemini-3.1-flash-lite", "gemini-flash-latest", "gemini-3.8-flash"];
 
 async function generateWithFallback(prompt: string, jsonMode: boolean = false): Promise<string> {
+  // Try Groq first if key is present
+  if (activeGroqKey) {
+    try {
+      const groqRes = await generateWithGroq(prompt, jsonMode);
+      if (groqRes && groqRes.trim().length > 0) {
+        return groqRes;
+      }
+    } catch (groqErr) {
+      console.warn("Groq attempt failed, falling back to Gemini:", groqErr);
+    }
+  }
+
   const ai = getAIClient();
   if (!ai) {
-    throw new Error("Gemini client not initialized");
+    throw new Error("No AI client available (Gemini and Groq not configured)");
   }
 
   let lastError: any = null;
@@ -268,6 +407,7 @@ app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
     hasGemini: !!process.env.GEMINI_API_KEY,
+    hasGroq: !!activeGroqKey,
     monetag: {
       zoneId: "11787291",
       domain: "3nbf4.com",
@@ -279,6 +419,10 @@ app.get("/api/health", (req, res) => {
 // API: Generate new AI puzzle on demand
 app.post("/api/generate-puzzle", async (req, res) => {
   try {
+    if (req.body?.groqApiKey && typeof req.body.groqApiKey === 'string' && req.body.groqApiKey.trim()) {
+      activeGroqKey = req.body.groqApiKey.trim();
+    }
+
     const ai = getAIClient();
     const rawCategory = req.body?.category;
     const category = (!rawCategory || rawCategory === 'all') ? 'random' : rawCategory;
@@ -294,7 +438,7 @@ app.post("/api/generate-puzzle", async (req, res) => {
     const subthemes = CATEGORY_SUBTHEMES[catKey] || CATEGORY_SUBTHEMES.logic;
     const randomTheme = subthemes[Math.floor(Math.random() * subthemes.length)];
 
-    if (!ai) {
+    if (!ai && !activeGroqKey) {
       const eligible = category === 'random' 
         ? BACKUP_PUZZLES 
         : BACKUP_PUZZLES.filter(p => p.category === category);
@@ -453,6 +597,82 @@ app.all(["/api/batch-generate", "/api/batch-generate/"], async (req, res) => {
     return batchGenerateHandler(req, res);
   } catch (err: any) {
     res.status(500).json({ error: err.message || "Failed to batch generate puzzles" });
+  }
+});
+
+// Groq API status endpoint
+app.get("/api/groq-status", async (req, res) => {
+  let modelName = activeGroqModel;
+  if (activeGroqKey && (!activeGroqModel || activeGroqModel === "llama-3.3-70b-versatile")) {
+    modelName = await resolveBestGroqModel(activeGroqKey);
+  }
+  res.json({
+    configured: !!activeGroqKey,
+    preview: activeGroqKey ? `${activeGroqKey.slice(0, 6)}••••••••${activeGroqKey.slice(-4)}` : null,
+    model: modelName || "allam-2-7b"
+  });
+});
+
+// Secure endpoint to set and verify Groq API key dynamically
+app.post("/api/set-groq-key", async (req, res) => {
+  try {
+    const rawKey = req.body?.apiKey;
+    if (!rawKey || typeof rawKey !== "string" || !rawKey.trim()) {
+      return res.status(400).json({ success: false, message: "يرجى إدخال مفتاح Groq صالح يبدأ عادة بـ gsk_" });
+    }
+
+    const key = rawKey.trim();
+
+    // Verify key directly against Groq /models endpoint (fast, accurate, no hardcoded model dependency)
+    let detectedModel = "allam-2-7b";
+    try {
+      const testResponse = await fetch("https://api.groq.com/openai/v1/models", {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${key}`
+        }
+      });
+
+      if (!testResponse.ok) {
+        const errDetails = await testResponse.text();
+        return res.status(400).json({
+          success: false,
+          message: `المفتاح غير صالح أو تم رفضه من مزود Groq (${testResponse.status})`,
+          details: errDetails.slice(0, 150)
+        });
+      }
+
+      const data: any = await testResponse.json();
+      const availableIds: string[] = (data?.data || []).map((m: any) => m.id);
+      const prioritizedList = [
+        "allam-2-7b",
+        "qwen/qwen3.8-27b",
+        "groq/compound-mini",
+        "llama-3.3-70b-versatile",
+        "llama-3.1-70b-versatile",
+        "llama-3.1-8b-instant"
+      ];
+      detectedModel = prioritizedList.find(p => availableIds.includes(p)) || availableIds[0] || "allam-2-7b";
+    } catch (networkErr: any) {
+      console.warn("Groq test ping network notice:", networkErr.message);
+    }
+
+    activeGroqKey = key;
+    activeGroqModel = detectedModel;
+    cachedModelKey = key;
+
+    return res.json({
+      success: true,
+      message: `تم حفظ وتفعيل مفتاح Groq بنجاح! يعمل الآن بنموذج (${activeGroqModel}).`,
+      configured: true,
+      model: activeGroqModel,
+      preview: `${activeGroqKey.slice(0, 6)}••••••••${activeGroqKey.slice(-4)}`
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      message: err.message || "حدث خطأ أثناء معالجة مفتاح Groq"
+    });
   }
 });
 

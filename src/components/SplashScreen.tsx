@@ -29,11 +29,11 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         const next = Math.min(100, prev + step);
 
         if (next < 30) {
-          setStatusText('توليد وتنشيط الذكاء الاصطناعي 🧠...');
+          setStatusText('تنشيط محرك الذكاء الاصطناعي 🧠...');
         } else if (next < 65) {
-          setStatusText('تحميل بنك مئات الآلاف من الألغاز ⚡...');
+          setStatusText('تجهيز بنك التحديات والألغاز الذكية ⚡...');
         } else if (next < 90) {
-          setStatusText('تفعيل خوارزمية منع التكرار الصارمة 🎯...');
+          setStatusText('ضبط مستويات الصعوبة والتلميحات 🎯...');
         } else {
           setStatusText('اكتملت التهيئة! جاهز للانطلاق 🚀...');
         }
@@ -161,11 +161,11 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
           </span>
           <span className="px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-700/60 flex items-center gap-1 text-indigo-300">
             <Brain className="w-3 h-3 text-indigo-400" />
-            مئات آلاف الأسئلة
+            تحديات ذكاء متجددة
           </span>
           <span className="px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-700/60 flex items-center gap-1 text-emerald-300">
             <ShieldCheck className="w-3 h-3 text-emerald-400" />
-            صفر تكرار في المحاولات
+            تفكير واستنتاج منطقي
           </span>
         </motion.div>
 

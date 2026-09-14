@@ -366,7 +366,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Real-time Cyber Offline Detection & Modal */}
-      <OfflineModal />
+      <OfflineModal onOpenMonthlyVault={() => setArchiveModalOpen(true)} />
 
       {/* Toast notification */}
       {toastMessage && (
