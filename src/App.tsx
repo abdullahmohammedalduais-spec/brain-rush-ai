@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { AnimatePresence } from 'motion/react';
 import { Header } from './components/Header';
 import { BannerAd } from './components/BannerAd';
 import { PuzzleCard } from './components/PuzzleCard';
@@ -8,6 +9,8 @@ import { ShareModal } from './components/ShareModal';
 import { StatsModal } from './components/StatsModal';
 import { ArchiveModal } from './components/ArchiveModal';
 import { AiCategoryBar } from './components/AiCategoryBar';
+import { SplashScreen } from './components/SplashScreen';
+import { OfflineModal } from './components/OfflineModal';
 import { getDailyPuzzleForDate, CURATED_PUZZLES } from './data/dailyPuzzles';
 import { Puzzle, PlayerStats, PuzzleCategory } from './types';
 import { fetchNewAiPuzzle, generateProceduralPuzzle } from './utils/aiPuzzleEngine';
@@ -86,6 +89,7 @@ export default function App() {
   // AI Generation
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showSplash, setShowSplash] = useState<boolean>(true);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -356,6 +360,14 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+      {/* Animated Epic Launch SplashScreen */}
+      <AnimatePresence>
+        {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
+      </AnimatePresence>
+
+      {/* Real-time Cyber Offline Detection & Modal */}
+      <OfflineModal />
+
       {/* Toast notification */}
       {toastMessage && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-indigo-600 text-white text-xs sm:text-sm font-bold px-4 py-2 rounded-xl shadow-xl border border-indigo-400/40 animate-in fade-in slide-in-from-top-3 flex items-center gap-2">
