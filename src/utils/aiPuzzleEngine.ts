@@ -43,10 +43,6 @@ export async function fetchNewAiPuzzle(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 9000);
 
-    const groqKey = typeof window !== 'undefined' 
-      ? localStorage.getItem('groq_api_key_custom') || localStorage.getItem('groq_api_key') || undefined 
-      : undefined;
-
     const res = await fetch('/api/generate-puzzle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -54,8 +50,7 @@ export async function fetchNewAiPuzzle(
         category: category === 'all' ? undefined : category,
         difficulty,
         excludeAnswers: seenSignatures,
-        seed: `${Date.now()}_${Math.random()}`,
-        groqApiKey: groqKey
+        seed: `${Date.now()}_${Math.random()}`
       }),
       signal: controller.signal
     });
