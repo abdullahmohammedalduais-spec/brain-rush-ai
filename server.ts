@@ -438,6 +438,24 @@ app.post("/api/ai-hint", async (req, res) => {
   }
 });
 
+app.all(["/api/daily-puzzle", "/api/daily-puzzle/"], async (req, res) => {
+  try {
+    const dailyPuzzleHandler = (await import("./api/daily-puzzle")).default;
+    return dailyPuzzleHandler(req, res);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to generate daily puzzle" });
+  }
+});
+
+app.all(["/api/batch-generate", "/api/batch-generate/"], async (req, res) => {
+  try {
+    const batchGenerateHandler = (await import("./api/batch-generate")).default;
+    return batchGenerateHandler(req, res);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to batch generate puzzles" });
+  }
+});
+
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

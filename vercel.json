@@ -1,4 +1,12 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "crons": [
+    {
+      "path": "/api/daily-puzzle",
+      "schedule": "0 0 * * *"
+    }
+  ],
   "rewrites": [
     { "source": "/sw.js", "destination": "/sw.js" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
@@ -11,6 +19,14 @@
         { "key": "Content-Type", "value": "application/javascript" },
         { "key": "Service-Worker-Allowed", "value": "/" },
         { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
       ]
     }
   ]

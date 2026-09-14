@@ -1,0 +1,43 @@
+name: Build & Verify (CI/CD)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build, Lint & Verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm install
+
+      - name: 🔍 Typecheck & Lint
+        run: npm run lint
+
+      - name: 🏗️ Build Application (Vite + Server Bundle)
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: 🤖 Test Procedural AI Puzzle Generator Engine
+        run: npx tsx -e "import { generateUniqueProceduralPuzzle } from './src/utils/proceduralPuzzles.js'; const p = generateUniqueProceduralPuzzle('logic', 'medium'); console.log('Successfully generated test AI puzzle:', p.title);"
+
+      - name: 🚀 Verify Vercel Build Output
+        run: |
+          test -d dist
+          test -f dist/index.html
+          echo "✅ Build verified successfully! Ready for automatic Vercel deployment."

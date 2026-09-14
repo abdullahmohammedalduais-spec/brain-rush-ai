@@ -11,6 +11,7 @@ const SEEN_SIGNATURES_KEY = 'brainrush_seen_puzzle_signatures_v2';
 
 export function getSeenSignatures(): string[] {
   try {
+    if (typeof localStorage === 'undefined') return [];
     const raw = localStorage.getItem(SEEN_SIGNATURES_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
@@ -20,6 +21,7 @@ export function getSeenSignatures(): string[] {
 
 export function recordSeenSignature(signature: string) {
   try {
+    if (typeof localStorage === 'undefined') return;
     const seen = getSeenSignatures();
     const cleanSig = signature.trim().toLowerCase();
     if (!seen.includes(cleanSig)) {

@@ -9,6 +9,8 @@
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
+    "vercel-build": "vite build",
+    "generate:daily": "tsx scripts/daily-ai-cron.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
